@@ -55,6 +55,9 @@ void main() {
         const ProviderScope(child: MaterialApp(home: AddItemPage())),
       );
       await tester.pump();
+      // 冲刷 drift_flutter 数据库探活看门狗的 500ms Timer，
+      // 避免测试结束时报 "A Timer is still pending"
+      await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.text('物品名称'), findsOneWidget);
       expect(find.text('购买价格'), findsOneWidget);
@@ -68,10 +71,13 @@ void main() {
         const ProviderScope(child: MaterialApp(home: AddItemPage())),
       );
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
 
       await tester.tap(find.text('保存入库'));
       await tester.pump();
       expect(find.text('请填写物品名称'), findsOneWidget);
+      // 冲刷 ToastUtils 自动消失的 2s Future.delayed Timer
+      await tester.pump(const Duration(seconds: 2));
     });
   });
 }

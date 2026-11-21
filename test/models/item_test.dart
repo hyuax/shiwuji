@@ -137,11 +137,15 @@ void main() {
     });
 
     test('isWarrantyExpiringSoon: 8 days left (false)', () {
+      // 少减 500ms 让剩余天数留出毫秒余量：getter 内二次调用 DateTime.now()
+      // 的毫秒差会把 8 天截断成 7 天，导致断言偶发失败（inDays 向零取整）
       final item = Item(
         id: '1',
         name: 'Test',
         price: 100,
-        purchaseDate: DateTime.now().subtract(const Duration(days: 357)),
+        purchaseDate: DateTime.now().subtract(
+          const Duration(days: 356, milliseconds: 500),
+        ),
         warrantyDays: 365,
       );
       expect(item.isWarrantyExpiringSoon, false);

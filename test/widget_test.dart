@@ -29,9 +29,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump();
 
-    // 标题区域
-    expect(find.text('早上好，小橘 🌞'), findsOneWidget);
-    // 搜索栏
-    expect(find.textContaining('搜索'), findsOneWidget);
+    // 标题区域（问候语随运行时间变化：早上好/下午好/晚上好，断言昵称即可）
+    expect(find.textContaining('小橘'), findsOneWidget);
+    // 数据卡片标签
+    expect(find.text('物品总数'), findsOneWidget);
   });
 }
