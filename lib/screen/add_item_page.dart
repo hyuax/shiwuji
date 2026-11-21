@@ -11,12 +11,15 @@ import 'package:shi_wu_ji/models/emoji_classifier.dart';
 import 'package:shi_wu_ji/models/item.dart';
 import 'package:shi_wu_ji/widgets/app_dropdown_button.dart';
 import 'package:shi_wu_ji/widgets/emoji_text.dart';
+import 'package:shi_wu_ji/widgets/location_picker_sheet.dart';
 import 'package:shi_wu_ji/widgets/toast_utils.dart';
 import 'package:shi_wu_ji/providers/item_providers.dart';
 import 'package:shi_wu_ji/providers/storage_providers.dart';
 import 'package:shi_wu_ji/providers/category_provider.dart';
+import 'package:shi_wu_ji/services/description_parser.dart';
 import 'package:shi_wu_ji/services/notification_service.dart';
 import 'package:shi_wu_ji/services/photo_service.dart';
+import 'package:shi_wu_ji/providers/category_dict_provider.dart';
 
 // ==================== 主页面 ====================
 
@@ -58,6 +61,11 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
   final _nameController = TextEditingController();
   final _brandController = TextEditingController();
   final _priceController = TextEditingController();
+  // 数量与单位（"40包纸巾"类场景；数量默认 1）
+  final _quantityController = TextEditingController(text: '1');
+  final _unitController = TextEditingController();
+  // 低库存提醒阈值（0 = 未启用）
+  final _lowStockController = TextEditingController(text: '0');
   final _noteController = TextEditingController();
   final _buyDateController = TextEditingController();
   final _scrollController = ScrollController();
@@ -76,6 +84,10 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
   String? _selectedCategoryKey;
   String? _selectedLocation;
   StorageLocationNode? _selectedLocationNode;
+
+  // 用户是否已手动确定分类（手动选择/模板/扫一扫预填），
+  // 为 true 后名称自动识别分类不再覆盖用户选择
+  bool _categoryManuallyChosen = false;
 
   // 动态 emoji：随模板默认值 + 名称/品牌/备注关键词实时更新
   String _currentEmoji = '📦';
@@ -141,6 +153,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
     _nameController.addListener(_updateEmoji);
     _brandController.addListener(_updateEmoji);
     _noteController.addListener(_updateEmoji);
+    // 名称变化时自动识别分类（词库 → EmojiClassifier；用户手动选过分类后不再覆盖）
+    _nameController.addListener(_autoInferCategory);
     // 保质期天数变化 → 同步 _shelfLifeDays，并联动保质期提醒开关
     _shelfLifeController.addListener(_onShelfLifeChanged);
 
@@ -159,6 +173,12 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
         _tryMatchPendingCategory();
       }
     });
+    // 监听识别词库加载完成，对已输入的名称补做一次自动分类
+    ref.listenManual(categoryDictProvider, (prev, next) {
+      if (next.hasValue && _nameController.text.trim().isNotEmpty) {
+        _autoInferCategory();
+      }
+    });
   }
 
   /// 保质期天数输入变化时同步 `_shelfLifeDays`，并联动保质期提醒开关：
@@ -175,9 +195,16 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
 
   @override
   void dispose() {
+    _nameController.removeListener(_updateEmoji);
+    _brandController.removeListener(_updateEmoji);
+    _noteController.removeListener(_updateEmoji);
+    _nameController.removeListener(_autoInferCategory);
     _nameController.dispose();
     _brandController.dispose();
     _priceController.dispose();
+    _quantityController.dispose();
+    _unitController.dispose();
+    _lowStockController.dispose();
     _noteController.dispose();
     _buyDateController.dispose();
     _shelfLifeController.dispose();
@@ -200,6 +227,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
     _priceController.text = item.price.toStringAsFixed(
       item.price == item.price.roundToDouble() ? 0 : 2,
     );
+    _quantityController.text = item.quantity.toString();
+    _unitController.text = item.unit;
+    _lowStockController.text = item.lowStockThreshold.toString();
     _noteController.text = item.note;
     _buyDateController.text =
         '${item.purchaseDate.year}-${item.purchaseDate.month.toString().padLeft(2, '0')}-${item.purchaseDate.day.toString().padLeft(2, '0')}';
@@ -331,6 +361,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
       _selectedTemplate = 'none';
       _selectedCategory = match.label;
       _selectedCategoryKey = match.id;
+      // 扫一扫已带分类意图，视为手动确定，不再被名称自动识别覆盖
+      _categoryManuallyChosen = true;
     }
     _pendingCategoryLabel = null;
     setState(() {});
@@ -486,6 +518,28 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
     setState(() => _currentEmoji = emoji);
   }
 
+  /// 名称输入自动识别分类：识别词库优先，EmojiClassifier 兜底。
+  /// 仅通用模板（未绑定分类）且用户未手动选择过分类时生效，
+  /// 推断结果须存在于当前分类列表，否则不设置。
+  void _autoInferCategory() {
+    if (_selectedTemplate != 'none') return;
+    if (_categoryManuallyChosen) return;
+    final name = _nameController.text.trim();
+    if (name.isEmpty) return;
+    final dict =
+        ref.read(categoryDictProvider).value ?? const <CategoryDictEntry>[];
+    final inferred = DescriptionParser.inferCategory(name: name, dict: dict);
+    if (inferred == null || inferred.key.isEmpty) return;
+    final cats = ref.read(availableCategoriesProvider);
+    if (!cats.any((c) => c.key == inferred.key)) return;
+    if (_selectedCategoryKey != inferred.key) {
+      setState(() {
+        _selectedCategory = inferred.label;
+        _selectedCategoryKey = inferred.key;
+      });
+    }
+  }
+
   void _selectTemplate(String key) {
     setState(() {
       _selectedTemplate = key;
@@ -506,6 +560,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
         );
         _selectedCategory = card.name;
         _selectedCategoryKey = key;
+        // 用户通过模板明确了分类归属，停止名称自动覆盖
+        _categoryManuallyChosen = true;
       }
       // 模板切换后重置为该大类默认 emoji，再依据当前输入内容重新匹配
       _currentEmoji = EmojiClassifier.defaultEmojiOf(key);
@@ -557,6 +613,8 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
             if (isCategory) {
               _selectedCategory = name;
               _selectedCategoryKey = labelToKey[name];
+              // 用户手动选择的分类，不再被名称自动识别覆盖
+              if (isCategory) _categoryManuallyChosen = true;
             } else {
               _selectedLocation = name;
             }
@@ -580,7 +638,7 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
             final asyncNodes = ref.watch(storageLocationTreeProvider);
             final allNodes = asyncNodes.value ?? const [];
             final slotNodes = allNodes.where((n) => n.isSlot).toList();
-            return _LocationPickerSheet(
+            return LocationPickerSheet(
               nodes: slotNodes,
               isLoading: asyncNodes.isLoading,
               selectedNode: _selectedLocationNode,
@@ -666,6 +724,16 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
       return;
     }
 
+    // 数量解析：非法/小于 1 时回退默认 1
+    final quantityRaw = int.tryParse(_quantityController.text.trim());
+    final quantity = (quantityRaw == null || quantityRaw < 1) ? 1 : quantityRaw;
+    final unit = _unitController.text.trim();
+    // 低库存阈值：非法/负数回退 0（不提醒）
+    final lowStockRaw = int.tryParse(_lowStockController.text.trim());
+    final lowStockThreshold = (lowStockRaw == null || lowStockRaw < 0)
+        ? 0
+        : lowStockRaw;
+
     // 通用物品创建流程：必须手动选择分类（非通用模版已自动绑定分类）
     if (_selectedTemplate == 'none' && _selectedCategory == null) {
       _showToast('请选择物品分类');
@@ -743,6 +811,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
         shelfLifeReminderOn: _expiryOn,
         maintenanceReminderOn: _maintainOn,
         maintenanceCycle: _maintainCycle,
+        quantity: quantity,
+        unit: unit,
+        lowStockThreshold: lowStockThreshold,
       );
 
       await ref.read(itemsProvider.notifier).updateItem(item);
@@ -802,6 +873,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
         shelfLifeReminderOn: _expiryOn,
         maintenanceReminderOn: _maintainOn,
         maintenanceCycle: _maintainCycle,
+        quantity: quantity,
+        unit: unit,
+        lowStockThreshold: lowStockThreshold,
       );
 
       await ref.read(itemsProvider.notifier).addItem(item);
@@ -841,6 +915,9 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
     _nameController.clear();
     _brandController.clear();
     _priceController.clear();
+    _quantityController.text = '1';
+    _unitController.clear();
+    _lowStockController.text = '0';
     _noteController.clear();
     _shelfLifeController.text = '0';
     final today = DateTime.now();
@@ -1321,6 +1398,57 @@ class _AddItemPageState extends ConsumerState<AddItemPage>
         _buildInput(
           controller: _nameController,
           placeholder: '例如：AirPods Pro 2',
+        ),
+        const SizedBox(height: 14),
+        // 数量 & 单位 & 低库存阈值（可选，默认 1 / 不提醒）
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('数量'),
+                  const SizedBox(height: 6),
+                  _buildInput(
+                    controller: _quantityController,
+                    placeholder: '1',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('单位'),
+                  const SizedBox(height: 6),
+                  _buildInput(
+                    controller: _unitController,
+                    placeholder: '例如：包 / 盒',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('库存提醒'),
+                  const SizedBox(height: 6),
+                  _buildInput(
+                    controller: _lowStockController,
+                    placeholder: '0 = 不提醒',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 14),
         // 品牌
@@ -2191,205 +2319,6 @@ class _PickerSheet extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ==================== 收纳位置选择弹窗 ====================
-class _LocationPickerSheet extends StatelessWidget {
-  final List<StorageLocationNode> nodes;
-  final bool isLoading;
-  final StorageLocationNode? selectedNode;
-  final ValueChanged<StorageLocationNode> onPick;
-  final VoidCallback onClear;
-
-  const _LocationPickerSheet({
-    required this.nodes,
-    required this.isLoading,
-    required this.selectedNode,
-    required this.onPick,
-    required this.onClear,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final maxSheetHeight = screenHeight * 0.75;
-
-    return Container(
-      constraints: BoxConstraints(maxHeight: maxSheetHeight),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 顶部把手
-          Padding(
-            padding: const EdgeInsets.only(top: 10, bottom: 4),
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          // 标题行
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '选择收纳位置',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                IconButton(
-                  onPressed: onClear,
-                  icon: const Icon(
-                    Icons.refresh,
-                    size: 18,
-                    color: AppColors.textSecondary,
-                  ),
-                  tooltip: '清除选择',
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.border),
-          // 列表
-          Flexible(
-            child: isLoading
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: CircularProgressIndicator(
-                        color: AppColors.accentGold,
-                      ),
-                    ),
-                  )
-                : nodes.isEmpty
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: Text(
-                        '暂无可用格子区域\n请先在收纳页面添加柜体和格子',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: AppColors.textHint,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: nodes.length,
-                    itemBuilder: (ctx, i) {
-                      final node = nodes[i];
-                      final isSelected =
-                          selectedNode?.id == node.id &&
-                          selectedNode?.isSlot == node.isSlot;
-                      return _LocationTile(
-                        node: node,
-                        isSelected: isSelected,
-                        onTap: () => onPick(node),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LocationTile extends StatelessWidget {
-  final StorageLocationNode node;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _LocationTile({
-    required this.node,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFFF8E7) : AppColors.background,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.accentGold : AppColors.border,
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            // 层级图标
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: node.isSlot
-                    ? const Color(0xFFE8F0FE)
-                    : const Color(0xFFFFF3CC),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(child: EmojiText(emoji: node.emoji, fontSize: 18)),
-            ),
-            const SizedBox(width: 12),
-            // 路径信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    node.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    node.pathLabel,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textHint,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            // 选中标记
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: AppColors.accentGold,
-                size: 20,
-              ),
-          ],
-        ),
       ),
     );
   }
