@@ -10,6 +10,9 @@ class DataCardsSection extends StatelessWidget {
   final int weeklyNewCount;
   final double monthlyGrowth;
 
+  /// 卡片点击回调（参数为卡片 label），由首页决定跳转目标。
+  final ValueChanged<String>? onCardTap;
+
   const DataCardsSection({
     super.key,
     required this.itemCount,
@@ -18,6 +21,7 @@ class DataCardsSection extends StatelessWidget {
     required this.idleCount,
     required this.weeklyNewCount,
     required this.monthlyGrowth,
+    this.onCardTap,
   });
 
   @override
@@ -44,6 +48,7 @@ class DataCardsSection extends StatelessWidget {
             iconBgColor: AppColors.accentLightBg,
             iconColor: AppColors.accentGold,
             delayMs: 100,
+            onTap: onCardTap == null ? null : () => onCardTap!('物品总数'),
           ),
           DataCard(
             icon: Icons.trending_up,
@@ -57,6 +62,7 @@ class DataCardsSection extends StatelessWidget {
             iconBgColor: AppColors.warning.withValues(alpha: 0.15),
             iconColor: AppColors.warning,
             delayMs: 200,
+            onTap: onCardTap == null ? null : () => onCardTap!('总资产价值'),
           ),
           DataCard(
             icon: Icons.timer,
@@ -70,6 +76,7 @@ class DataCardsSection extends StatelessWidget {
             iconBgColor: AppColors.danger.withValues(alpha: 0.15),
             iconColor: AppColors.danger,
             delayMs: 300,
+            onTap: onCardTap == null ? null : () => onCardTap!('即将到期'),
           ),
           DataCard(
             icon: Icons.archive,
@@ -83,6 +90,7 @@ class DataCardsSection extends StatelessWidget {
             iconBgColor: AppColors.success.withValues(alpha: 0.15),
             iconColor: AppColors.success,
             delayMs: 400,
+            onTap: onCardTap == null ? null : () => onCardTap!('过保物品'),
           ),
         ],
       ),

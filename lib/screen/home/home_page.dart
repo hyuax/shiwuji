@@ -296,6 +296,17 @@ class _HomePageState extends ConsumerState<HomePage> {
       idleCount: ref.watch(idleCountProvider),
       weeklyNewCount: ref.watch(weeklyNewCountProvider),
       monthlyGrowth: ref.watch(monthlyGrowthProvider),
+      // 点击卡片跳转：总数/资产 → 物品库；到期/过保 → 对应状态筛选
+      onCardTap: (label) {
+        switch (label) {
+          case '即将到期':
+            _navigateToInventory(statusFilter: 'expiring');
+          case '过保物品':
+            _navigateToInventory(statusFilter: 'idle');
+          default:
+            _navigateToInventory();
+        }
+      },
     );
   }
 

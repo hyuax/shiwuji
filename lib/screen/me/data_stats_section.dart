@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shi_wu_ji/constants/app_colors.dart';
 import 'package:shi_wu_ji/providers/profile_provider.dart';
 
@@ -14,6 +15,7 @@ class DataStatsSection extends ConsumerWidget {
       unit: '件',
       color: AppColors.primary,
       delay: 0,
+      route: '/inventory',
     ),
     _StatEntry(
       icon: Icons.account_balance_wallet_outlined,
@@ -21,6 +23,7 @@ class DataStatsSection extends ConsumerWidget {
       unit: '元',
       color: AppColors.warning,
       delay: 80,
+      route: '/inventory',
     ),
     _StatEntry(
       icon: Icons.home_outlined,
@@ -28,6 +31,7 @@ class DataStatsSection extends ConsumerWidget {
       unit: '个',
       color: AppColors.success,
       delay: 160,
+      route: '/storage',
     ),
     _StatEntry(
       icon: Icons.grid_view_outlined,
@@ -35,6 +39,7 @@ class DataStatsSection extends ConsumerWidget {
       unit: '个',
       color: AppColors.info,
       delay: 240,
+      route: '/categories',
     ),
   ];
 
@@ -57,31 +62,34 @@ class DataStatsSection extends ConsumerWidget {
           mainAxisSpacing: 12,
           childAspectRatio: 1.65,
           children: [
-            _buildCell(_entries[0], data['itemCount'] ?? 0),
-            _buildCell(_entries[1], data['totalValue'] ?? 0),
-            _buildCell(_entries[2], data['roomCount'] ?? 0),
-            _buildCell(_entries[3], data['categoryCount'] ?? 0),
+            _buildCell(context, _entries[0], data['itemCount'] ?? 0),
+            _buildCell(context, _entries[1], data['totalValue'] ?? 0),
+            _buildCell(context, _entries[2], data['roomCount'] ?? 0),
+            _buildCell(context, _entries[3], data['categoryCount'] ?? 0),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCell(_StatEntry entry, num value) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 450),
-      curve: const Cubic(0.34, 1.56, 0.64, 1),
-      builder: (context, t, child) {
-        return Transform.scale(
-          scale: 0.85 + 0.15 * t,
-          child: Transform.translate(
-            offset: Offset(0, 16 * (1 - t)),
-            child: child,
-          ),
-        );
-      },
-      child: Container(
+  Widget _buildCell(BuildContext context, _StatEntry entry, num value) {
+    return GestureDetector(
+      // 点击数据卡跳转到对应页面（底部 Tab 用 go 切换分支）
+      onTap: entry.route == null ? null : () => context.go(entry.route!),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 450),
+        curve: const Cubic(0.34, 1.56, 0.64, 1),
+        builder: (context, t, child) {
+          return Transform.scale(
+            scale: 0.85 + 0.15 * t,
+            child: Transform.translate(
+              offset: Offset(0, 16 * (1 - t)),
+              child: child,
+            ),
+          );
+        },
+        child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.cardBg,
@@ -134,6 +142,7 @@ class DataStatsSection extends ConsumerWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -178,11 +187,15 @@ class _StatEntry {
   final Color color;
   final int delay;
 
+  /// 点击卡片跳转的路由（null = 不可点击）
+  final String? route;
+
   const _StatEntry({
     required this.icon,
     required this.label,
     required this.unit,
     required this.color,
     required this.delay,
+    this.route,
   });
 }

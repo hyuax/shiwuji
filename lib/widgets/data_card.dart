@@ -15,6 +15,9 @@ class DataCard extends StatefulWidget {
   final Color iconColor;
   final int delayMs;
 
+  /// 点击回调（为空时卡片不可点）
+  final VoidCallback? onTap;
+
   const DataCard({
     super.key,
     required this.icon,
@@ -28,6 +31,7 @@ class DataCard extends StatefulWidget {
     required this.iconBgColor,
     required this.iconColor,
     this.delayMs = 0,
+    this.onTap,
   });
 
   @override
@@ -74,7 +78,9 @@ class _DataCardState extends State<DataCard>
     if (!_visible) {
       return const SizedBox.shrink();
     }
-    return AnimatedBuilder(
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
       animation: _bounceAnim,
       builder: (context, child) {
         return Opacity(
@@ -204,6 +210,7 @@ class _DataCardState extends State<DataCard>
             ),
           ],
         ),
+      ),
       ),
     );
   }
