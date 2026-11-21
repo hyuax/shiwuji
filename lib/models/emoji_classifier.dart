@@ -46,6 +46,23 @@ class EmojiMainCategory {
   });
 }
 
+/// 跨大类全局匹配结果（用于"物品名 → 分类"推断，见 [EmojiClassifier.classifyMain]）。
+class EmojiMainMatch {
+  final String mainKey;
+  final String subName;
+  final String emoji;
+  final String keyword;
+  final int priority;
+
+  const EmojiMainMatch({
+    required this.mainKey,
+    required this.subName,
+    required this.emoji,
+    required this.keyword,
+    required this.priority,
+  });
+}
+
 /// Emoji 动态分类器。
 ///
 /// 用法：
@@ -761,5 +778,47 @@ class EmojiClassifier {
       }
     }
     return best;
+  }
+
+  /// 跨大类全局推断：不指定大类，直接在全部注册表中为文本找出最匹配的分类。
+  ///
+  /// 消歧规则（解决"笔记本"同时命中 digital/stationery 等跨类泛词冲突）：
+  /// 1. 命中关键词更长者优先（"笔记本电脑" 胜过 "本"）；
+  /// 2. 长度相同取 [EmojiSubCategory.priority] 更大者；
+  /// 3. 仍相同取声明顺序靠前的大类（遍历顺序稳定）。
+  ///
+  /// 未命中返回 null。
+  static EmojiMainMatch? classifyMain(String content) {
+    final lower = content.toLowerCase();
+    if (lower.trim().isEmpty) return null;
+
+    EmojiMainMatch? best;
+    _registry.forEach((mainKey, main) {
+      for (final sub in main.subCategories) {
+        for (final kw in sub.keywords) {
+          if (!lower.contains(kw.toLowerCase())) continue;
+          final candidate = EmojiMainMatch(
+            mainKey: mainKey,
+            subName: sub.name,
+            emoji: sub.emoji,
+            keyword: kw,
+            priority: sub.priority,
+          );
+          final current = best;
+          if (current == null || _beats(candidate, current)) {
+            best = candidate;
+          }
+        }
+      }
+    });
+    return best;
+  }
+
+  /// 全局消歧比较：a 是否优于 b（关键词更长 → priority 更大）。
+  static bool _beats(EmojiMainMatch a, EmojiMainMatch b) {
+    final aLen = a.keyword.length;
+    final bLen = b.keyword.length;
+    if (aLen != bLen) return aLen > bLen;
+    return a.priority > b.priority;
   }
 }
