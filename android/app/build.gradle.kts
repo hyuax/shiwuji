@@ -36,6 +36,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // 应用名称占位符（debug 构建在 buildTypes 中覆盖为「拾物记Debug」）
+        manifestPlaceholders["appLabel"] = "拾物记"
     }
 
     signingConfigs {
@@ -51,6 +53,11 @@ android {
         release {
             // 正式签名：从 android/key.properties 读取
             signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            // 独立包名（com.shiwuji.shiwuji.debug）：可与正式包同时安装，数据完全隔离。
+            // 应用名称保持「拾物记」（包名有 debug 后缀即可区分）
+            applicationIdSuffix = ".debug"
         }
     }
 }

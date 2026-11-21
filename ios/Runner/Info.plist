@@ -28,10 +28,14 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>拾物记需要使用相机拍照识别物品</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>拾物记需要使用麦克风进行语音输入物品描述</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>拾物记需要访问相册以选择物品图片进行识别</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>拾物记需要保存物品图片</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>拾物记需要使用语音识别将口述的物品描述转换为文字</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

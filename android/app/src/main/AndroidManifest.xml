@@ -13,8 +13,10 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <!-- 相机权限（扫一扫拍照识别物品需要） -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- 麦克风权限（智能录入语音输入需要） -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
-        android:label="拾物记"
+        android:label="${appLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
