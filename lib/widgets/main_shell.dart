@@ -37,7 +37,11 @@ class MainShell extends StatelessWidget {
           right: 0,
           child: Center(
             child: GestureDetector(
+              // 点击 → 智能录入（快速路径）；长按 → 完整表单
               onTap: () {
+                context.push('/smart-add');
+              },
+              onLongPress: () {
                 context.push('/add_item');
               },
               child: Container(

@@ -936,6 +936,35 @@ class _SmartAddPageState extends ConsumerState<SmartAddPage> {
               color: AppColors.textPrimary,
             ),
           ),
+          const Spacer(),
+          GestureDetector(
+            // 需要保修/保质期等完整字段时，跳转完整表单
+            onTap: () => context.push('/add_item'),
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.edit_note, size: 18, color: AppColors.primary),
+                  SizedBox(width: 4),
+                  Text(
+                    '完整表单',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
