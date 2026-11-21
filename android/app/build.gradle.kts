@@ -52,9 +52,12 @@ android {
     buildTypes {
         release {
             // 正式签名：仅当 android/key.properties 存在时使用；
-            // 缺失时（如临时测试机）回退 debug 签名，保证 release 测试包可打包
+            // 缺失时（如临时测试机）必须显式回退 debug 签名——
+            // 不设置签名会产出未签名 APK，真机安装报"解析软件包时出现问题(33)"
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
             }
             // ⚠️ 临时：小体积测试包，独立包名 com.shiwuji.shiwuji.test
             //    （与正式包 com.shiwuji.shiwuji、调试包 .debug 三者共存）
