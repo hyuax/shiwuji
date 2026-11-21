@@ -46,6 +46,13 @@ class FeatureMenuSection extends ConsumerWidget {
       color: AppColors.info,
       route: '/check-update',
     ),
+    _MenuEntry(
+      icon: Icons.menu_book_outlined,
+      title: '识别词库',
+      subtitle: '一句话录入的自动分类词典',
+      color: AppColors.success,
+      route: '/smart-dictionary',
+    ),
   ];
 
   @override

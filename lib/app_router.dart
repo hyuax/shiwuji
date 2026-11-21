@@ -13,7 +13,9 @@ import 'package:shi_wu_ji/screen/me/data_backup_page.dart';
 import 'package:shi_wu_ji/screen/me/notification_settings_page.dart';
 import 'package:shi_wu_ji/screen/me/check_update_page.dart';
 import 'package:shi_wu_ji/screen/me/ai_settings_page.dart';
+import 'package:shi_wu_ji/screen/me/smart_dictionary_page.dart';
 import 'package:shi_wu_ji/screen/scan/scan_page.dart';
+import 'package:shi_wu_ji/screen/smart_add/smart_add_page.dart';
 
 /// 创建应用路由。根据 [initialLocation] 决定启动页：首次启动显示 splash，否则直接进入首页。
 GoRouter createAppRouter({String initialLocation = '/'}) {
@@ -55,7 +57,15 @@ GoRouter createAppRouter({String initialLocation = '/'}) {
         path: '/ai-settings',
         builder: (context, state) => const AiSettingsPage(),
       ),
+      GoRoute(
+        path: '/smart-dictionary',
+        builder: (context, state) => const SmartDictionaryPage(),
+      ),
       GoRoute(path: '/scan', builder: (context, state) => const ScanPage()),
+      GoRoute(
+        path: '/smart-add',
+        builder: (context, state) => const SmartAddPage(),
+      ),
       GoRoute(
         path: '/detail/:id',
         builder: (context, state) =>
