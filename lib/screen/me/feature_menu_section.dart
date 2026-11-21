@@ -53,6 +53,13 @@ class FeatureMenuSection extends ConsumerWidget {
       color: AppColors.success,
       route: '/smart-dictionary',
     ),
+    _MenuEntry(
+      icon: Icons.tune_outlined,
+      title: '应用设置',
+      subtitle: '启动页等通用偏好',
+      color: AppColors.purple,
+      route: '/app-settings',
+    ),
   ];
 
   @override

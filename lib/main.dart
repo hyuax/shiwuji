@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'app_router.dart';
 import 'providers/database_provider.dart';
+import 'services/app_settings_service.dart';
 import 'services/notification_service.dart';
 import 'services/first_run_service.dart';
 import 'services/encryption_service.dart';
@@ -40,18 +42,38 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> {
-  final _router = createAppRouter(
-    initialLocation: FirstRunService.isFirstRun ? '/' : '/home',
-  );
+  /// 路由：启动页偏好异步加载完成后才创建（加载期间显示过渡 loading）
+  GoRouter? _router;
 
   @override
   void initState() {
     super.initState();
+    _initRouter();
     // 启动时加载通知偏好（保修/保质期提醒开关与天数），
     // 确保后续新增/编辑物品调度使用用户已保存的配置。
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _loadNotificationPrefs(),
     );
+  }
+
+  /// 创建路由：首次启动走 splash；否则按「应用设置 → 启动页」进入。
+  Future<void> _initRouter() async {
+    String initialLocation;
+    if (FirstRunService.isFirstRun) {
+      initialLocation = '/';
+    } else {
+      try {
+        final dao = ref.read(settingsDaoProvider);
+        final value = await dao.getValue(AppSettingsService.keyStartupPage);
+        initialLocation = AppSettingsService.locationFor(value);
+      } catch (_) {
+        initialLocation = '/home';
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _router = createAppRouter(initialLocation: initialLocation);
+    });
   }
 
   Future<void> _loadNotificationPrefs() async {
@@ -66,10 +88,18 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final router = _router;
+    if (router == null) {
+      // 启动页偏好读取期间的过渡页（通常一闪而过）
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
     return MaterialApp.router(
       title: '拾物记',
       theme: ThemeData(primarySwatch: Colors.amber),
-      routerConfig: _router,
+      routerConfig: router,
       // 关闭 debug 构建右上角的 "DEBUG" 横幅
       debugShowCheckedModeBanner: false,
     );

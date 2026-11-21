@@ -14,6 +14,7 @@ import 'package:shi_wu_ji/screen/me/notification_settings_page.dart';
 import 'package:shi_wu_ji/screen/me/check_update_page.dart';
 import 'package:shi_wu_ji/screen/me/ai_settings_page.dart';
 import 'package:shi_wu_ji/screen/me/smart_dictionary_page.dart';
+import 'package:shi_wu_ji/screen/me/app_settings_page.dart';
 import 'package:shi_wu_ji/screen/scan/scan_page.dart';
 import 'package:shi_wu_ji/screen/smart_add/smart_add_page.dart';
 
@@ -60,6 +61,10 @@ GoRouter createAppRouter({String initialLocation = '/'}) {
       GoRoute(
         path: '/smart-dictionary',
         builder: (context, state) => const SmartDictionaryPage(),
+      ),
+      GoRoute(
+        path: '/app-settings',
+        builder: (context, state) => const AppSettingsPage(),
       ),
       GoRoute(path: '/scan', builder: (context, state) => const ScanPage()),
       GoRoute(
