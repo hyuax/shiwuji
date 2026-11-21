@@ -70,6 +70,8 @@ class _MyAppState extends ConsumerState<MyApp> {
       title: '拾物记',
       theme: ThemeData(primarySwatch: Colors.amber),
       routerConfig: _router,
+      // 关闭 debug 构建右上角的 "DEBUG" 横幅
+      debugShowCheckedModeBanner: false,
     );
   }
 }
