@@ -51,8 +51,15 @@ android {
 
     buildTypes {
         release {
-            // 正式签名：从 android/key.properties 读取
-            signingConfig = signingConfigs.getByName("release")
+            // 正式签名：仅当 android/key.properties 存在时使用；
+            // 缺失时（如临时测试机）回退 debug 签名，保证 release 测试包可打包
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            // ⚠️ 临时：小体积测试包，独立包名 com.shiwuji.shiwuji.test
+            //    （与正式包 com.shiwuji.shiwuji、调试包 .debug 三者共存）
+            // 发布正式版前必须删除下面这一行！
+            applicationIdSuffix = ".test"
         }
         debug {
             // 独立包名（com.shiwuji.shiwuji.debug）：可与正式包同时安装，数据完全隔离。
