@@ -310,6 +310,14 @@ class _HomePageState extends ConsumerState<HomePage> {
         mainAxisSpacing: 10,
         childAspectRatio: 0.75,
         children: [
+          QuickActionCard(
+            icon: Icons.auto_awesome,
+            label: '智能录入',
+            startColor: AppColors.gradientOrange,
+            endColor: AppColors.gradientOrangeEnd,
+            onTap: () => context.push('/smart-add'),
+            delayMs: 50,
+          ),
           // QuickActionCard(
           //   icon: Icons.download,
           //   label: '一键导入',
