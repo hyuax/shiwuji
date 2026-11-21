@@ -351,55 +351,82 @@ class _SmartDictionaryPageState extends ConsumerState<SmartDictionaryPage> {
     );
   }
 
+  /// 内置词库按分类分组展示：组头为分类名+数量，组内为关键词胶囊。
   Widget _buildBuiltInSection() {
-    final entries = CategoryDictionary.builtIn;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: entries
-            .map(
-              (e) => Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: e.keyword,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
+    final cats = ref.watch(availableCategoriesProvider);
+    final emojiOf = {for (final c in cats) c.label: c.emoji};
+    // 按分类分组（保持词库声明顺序）
+    final grouped = <String, List<CategoryDictEntry>>{};
+    for (final e in CategoryDictionary.builtIn) {
+      grouped.putIfAbsent(e.categoryLabel, () => []).add(e);
+    }
+
+    return Column(
+      children: [
+        for (final entry in grouped.entries)
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '${emojiOf[entry.key] ?? '📦'} ${entry.key}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
-                      TextSpan(
-                        text: ' → ${e.categoryLabel}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textHint,
-                        ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${entry.value.length} 个词条',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textHint,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ),
-            )
-            .toList(),
-      ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: entry.value
+                      .map(
+                        (e) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Text(
+                            e.keyword,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
