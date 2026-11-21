@@ -214,6 +214,35 @@ class NotificationService {
     }
   }
 
+  /// 低库存即时通知 id 异或掩码 —— 与保修/保质期提醒 id 区分，避免相互覆盖。
+  static const int _lowStockIdMask = 0x10C00000;
+
+  /// 低库存即时通知：消耗后数量 ≤ 阈值时调用（阈值 > 0 才启用）。
+  Future<void> showLowStock(Item item) async {
+    if (!_platformSupported) return;
+    try {
+      await _plugin.show(
+        id: item.id.hashCode ^ _lowStockIdMask,
+        title: '库存不足提醒',
+        body: '「${item.name}」仅剩 ${item.quantity}${item.unit.isEmpty ? '件' : item.unit}，记得补充',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'low_stock_reminder',
+            '库存不足提醒',
+            channelDescription: '物品数量低于阈值时推送提醒',
+            importance: Importance.high,
+            priority: Priority.high,
+            largeIcon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
+          ),
+        ),
+        payload: item.id,
+      );
+      debugPrint('[NotificationService] 已推送低库存提醒: ${item.name}');
+    } catch (e) {
+      debugPrint('[NotificationService] 低库存通知失败: $e');
+    }
+  }
+
   /// 保质期提醒通知 id 异或掩码 —— 与保修提醒（id = itemId.hashCode）区分，避免相互覆盖。
   static const int _shelfLifeIdMask = 0x5F4C0000;
 

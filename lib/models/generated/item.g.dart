@@ -37,6 +37,9 @@ _Item _$ItemFromJson(Map<String, dynamic> json) => _Item(
   maintenanceReminderOn: json['maintenanceReminderOn'] as bool? ?? false,
   maintenanceCycle: json['maintenanceCycle'] as String? ?? '',
   isBorrowed: json['isBorrowed'] as bool? ?? false,
+  quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+  unit: json['unit'] as String? ?? '',
+  lowStockThreshold: (json['lowStockThreshold'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$ItemToJson(_Item instance) => <String, dynamic>{
@@ -64,4 +67,7 @@ Map<String, dynamic> _$ItemToJson(_Item instance) => <String, dynamic>{
   'maintenanceReminderOn': instance.maintenanceReminderOn,
   'maintenanceCycle': instance.maintenanceCycle,
   'isBorrowed': instance.isBorrowed,
+  'quantity': instance.quantity,
+  'unit': instance.unit,
+  'lowStockThreshold': instance.lowStockThreshold,
 };

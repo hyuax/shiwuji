@@ -11,6 +11,7 @@ part 'tables/space_items_table.dart';
 part 'tables/import_history_table.dart';
 part 'tables/categories_table.dart';
 part 'tables/settings_table.dart';
+part 'tables/consumption_records_table.dart';
 
 // 种子数据
 part 'seed_data.dart';
@@ -28,13 +29,14 @@ part 'generated/database.g.dart';
     ImportHistory,
     Categories,
     Settings,
+    ConsumptionRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -47,6 +49,19 @@ class AppDatabase extends _$AppDatabase {
       // addColumn 为单条 DDL 且带默认值，幂等安全。
       if (from < 2) {
         await m.addColumn(items, items.isBorrowed);
+      }
+      // v3: 新增数量与单位字段（智能录入"40包纸巾"类场景）
+      if (from < 3) {
+        await m.addColumn(items, items.quantity);
+        await m.addColumn(items, items.unit);
+      }
+      // v4: 新增物品消耗记录表（数量扣减流水）
+      if (from < 4) {
+        await m.createTable(consumptionRecords);
+      }
+      // v5: 新增低库存提醒阈值（0 = 未启用）
+      if (from < 5) {
+        await m.addColumn(items, items.lowStockThreshold);
       }
     },
   );

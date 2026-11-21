@@ -280,6 +280,40 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<int> quantity = GeneratedColumn<int>(
+    'quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _unitMeta = const VerificationMeta('unit');
+  @override
+  late final GeneratedColumn<String> unit = GeneratedColumn<String>(
+    'unit',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _lowStockThresholdMeta = const VerificationMeta(
+    'lowStockThreshold',
+  );
+  @override
+  late final GeneratedColumn<int> lowStockThreshold = GeneratedColumn<int>(
+    'low_stock_threshold',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -306,6 +340,9 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
     maintenanceReminderOn,
     maintenanceCycle,
     isBorrowed,
+    quantity,
+    unit,
+    lowStockThreshold,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -498,6 +535,27 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
         isBorrowed.isAcceptableOrUnknown(data['is_borrowed']!, _isBorrowedMeta),
       );
     }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    }
+    if (data.containsKey('unit')) {
+      context.handle(
+        _unitMeta,
+        unit.isAcceptableOrUnknown(data['unit']!, _unitMeta),
+      );
+    }
+    if (data.containsKey('low_stock_threshold')) {
+      context.handle(
+        _lowStockThresholdMeta,
+        lowStockThreshold.isAcceptableOrUnknown(
+          data['low_stock_threshold']!,
+          _lowStockThresholdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -603,6 +661,18 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_borrowed'],
       )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}quantity'],
+      )!,
+      unit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unit'],
+      )!,
+      lowStockThreshold: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}low_stock_threshold'],
+      )!,
     );
   }
 
@@ -637,6 +707,9 @@ class Item extends DataClass implements Insertable<Item> {
   final bool maintenanceReminderOn;
   final String maintenanceCycle;
   final bool isBorrowed;
+  final int quantity;
+  final String unit;
+  final int lowStockThreshold;
   const Item({
     required this.id,
     required this.name,
@@ -662,6 +735,9 @@ class Item extends DataClass implements Insertable<Item> {
     required this.maintenanceReminderOn,
     required this.maintenanceCycle,
     required this.isBorrowed,
+    required this.quantity,
+    required this.unit,
+    required this.lowStockThreshold,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -694,6 +770,9 @@ class Item extends DataClass implements Insertable<Item> {
     map['maintenance_reminder_on'] = Variable<bool>(maintenanceReminderOn);
     map['maintenance_cycle'] = Variable<String>(maintenanceCycle);
     map['is_borrowed'] = Variable<bool>(isBorrowed);
+    map['quantity'] = Variable<int>(quantity);
+    map['unit'] = Variable<String>(unit);
+    map['low_stock_threshold'] = Variable<int>(lowStockThreshold);
     return map;
   }
 
@@ -727,6 +806,9 @@ class Item extends DataClass implements Insertable<Item> {
       maintenanceReminderOn: Value(maintenanceReminderOn),
       maintenanceCycle: Value(maintenanceCycle),
       isBorrowed: Value(isBorrowed),
+      quantity: Value(quantity),
+      unit: Value(unit),
+      lowStockThreshold: Value(lowStockThreshold),
     );
   }
 
@@ -764,6 +846,9 @@ class Item extends DataClass implements Insertable<Item> {
       ),
       maintenanceCycle: serializer.fromJson<String>(json['maintenanceCycle']),
       isBorrowed: serializer.fromJson<bool>(json['isBorrowed']),
+      quantity: serializer.fromJson<int>(json['quantity']),
+      unit: serializer.fromJson<String>(json['unit']),
+      lowStockThreshold: serializer.fromJson<int>(json['lowStockThreshold']),
     );
   }
   @override
@@ -794,6 +879,9 @@ class Item extends DataClass implements Insertable<Item> {
       'maintenanceReminderOn': serializer.toJson<bool>(maintenanceReminderOn),
       'maintenanceCycle': serializer.toJson<String>(maintenanceCycle),
       'isBorrowed': serializer.toJson<bool>(isBorrowed),
+      'quantity': serializer.toJson<int>(quantity),
+      'unit': serializer.toJson<String>(unit),
+      'lowStockThreshold': serializer.toJson<int>(lowStockThreshold),
     };
   }
 
@@ -822,6 +910,9 @@ class Item extends DataClass implements Insertable<Item> {
     bool? maintenanceReminderOn,
     String? maintenanceCycle,
     bool? isBorrowed,
+    int? quantity,
+    String? unit,
+    int? lowStockThreshold,
   }) => Item(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -847,6 +938,9 @@ class Item extends DataClass implements Insertable<Item> {
     maintenanceReminderOn: maintenanceReminderOn ?? this.maintenanceReminderOn,
     maintenanceCycle: maintenanceCycle ?? this.maintenanceCycle,
     isBorrowed: isBorrowed ?? this.isBorrowed,
+    quantity: quantity ?? this.quantity,
+    unit: unit ?? this.unit,
+    lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
   );
   Item copyWithCompanion(ItemsCompanion data) {
     return Item(
@@ -896,6 +990,11 @@ class Item extends DataClass implements Insertable<Item> {
       isBorrowed: data.isBorrowed.present
           ? data.isBorrowed.value
           : this.isBorrowed,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      unit: data.unit.present ? data.unit.value : this.unit,
+      lowStockThreshold: data.lowStockThreshold.present
+          ? data.lowStockThreshold.value
+          : this.lowStockThreshold,
     );
   }
 
@@ -925,7 +1024,10 @@ class Item extends DataClass implements Insertable<Item> {
           ..write('shelfLifeReminderOn: $shelfLifeReminderOn, ')
           ..write('maintenanceReminderOn: $maintenanceReminderOn, ')
           ..write('maintenanceCycle: $maintenanceCycle, ')
-          ..write('isBorrowed: $isBorrowed')
+          ..write('isBorrowed: $isBorrowed, ')
+          ..write('quantity: $quantity, ')
+          ..write('unit: $unit, ')
+          ..write('lowStockThreshold: $lowStockThreshold')
           ..write(')'))
         .toString();
   }
@@ -956,6 +1058,9 @@ class Item extends DataClass implements Insertable<Item> {
     maintenanceReminderOn,
     maintenanceCycle,
     isBorrowed,
+    quantity,
+    unit,
+    lowStockThreshold,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -984,7 +1089,10 @@ class Item extends DataClass implements Insertable<Item> {
           other.shelfLifeReminderOn == this.shelfLifeReminderOn &&
           other.maintenanceReminderOn == this.maintenanceReminderOn &&
           other.maintenanceCycle == this.maintenanceCycle &&
-          other.isBorrowed == this.isBorrowed);
+          other.isBorrowed == this.isBorrowed &&
+          other.quantity == this.quantity &&
+          other.unit == this.unit &&
+          other.lowStockThreshold == this.lowStockThreshold);
 }
 
 class ItemsCompanion extends UpdateCompanion<Item> {
@@ -1012,6 +1120,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
   final Value<bool> maintenanceReminderOn;
   final Value<String> maintenanceCycle;
   final Value<bool> isBorrowed;
+  final Value<int> quantity;
+  final Value<String> unit;
+  final Value<int> lowStockThreshold;
   final Value<int> rowid;
   const ItemsCompanion({
     this.id = const Value.absent(),
@@ -1038,6 +1149,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     this.maintenanceReminderOn = const Value.absent(),
     this.maintenanceCycle = const Value.absent(),
     this.isBorrowed = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.unit = const Value.absent(),
+    this.lowStockThreshold = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ItemsCompanion.insert({
@@ -1065,6 +1179,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     this.maintenanceReminderOn = const Value.absent(),
     this.maintenanceCycle = const Value.absent(),
     this.isBorrowed = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.unit = const Value.absent(),
+    this.lowStockThreshold = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -1095,6 +1212,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     Expression<bool>? maintenanceReminderOn,
     Expression<String>? maintenanceCycle,
     Expression<bool>? isBorrowed,
+    Expression<int>? quantity,
+    Expression<String>? unit,
+    Expression<int>? lowStockThreshold,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1125,6 +1245,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
         'maintenance_reminder_on': maintenanceReminderOn,
       if (maintenanceCycle != null) 'maintenance_cycle': maintenanceCycle,
       if (isBorrowed != null) 'is_borrowed': isBorrowed,
+      if (quantity != null) 'quantity': quantity,
+      if (unit != null) 'unit': unit,
+      if (lowStockThreshold != null) 'low_stock_threshold': lowStockThreshold,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1154,6 +1277,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     Value<bool>? maintenanceReminderOn,
     Value<String>? maintenanceCycle,
     Value<bool>? isBorrowed,
+    Value<int>? quantity,
+    Value<String>? unit,
+    Value<int>? lowStockThreshold,
     Value<int>? rowid,
   }) {
     return ItemsCompanion(
@@ -1182,6 +1308,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
           maintenanceReminderOn ?? this.maintenanceReminderOn,
       maintenanceCycle: maintenanceCycle ?? this.maintenanceCycle,
       isBorrowed: isBorrowed ?? this.isBorrowed,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1263,6 +1392,15 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     if (isBorrowed.present) {
       map['is_borrowed'] = Variable<bool>(isBorrowed.value);
     }
+    if (quantity.present) {
+      map['quantity'] = Variable<int>(quantity.value);
+    }
+    if (unit.present) {
+      map['unit'] = Variable<String>(unit.value);
+    }
+    if (lowStockThreshold.present) {
+      map['low_stock_threshold'] = Variable<int>(lowStockThreshold.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1296,6 +1434,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
           ..write('maintenanceReminderOn: $maintenanceReminderOn, ')
           ..write('maintenanceCycle: $maintenanceCycle, ')
           ..write('isBorrowed: $isBorrowed, ')
+          ..write('quantity: $quantity, ')
+          ..write('unit: $unit, ')
+          ..write('lowStockThreshold: $lowStockThreshold, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3861,6 +4002,357 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   }
 }
 
+class $ConsumptionRecordsTable extends ConsumptionRecords
+    with TableInfo<$ConsumptionRecordsTable, ConsumptionRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ConsumptionRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _itemIdMeta = const VerificationMeta('itemId');
+  @override
+  late final GeneratedColumn<String> itemId = GeneratedColumn<String>(
+    'item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<int> quantity = GeneratedColumn<int>(
+    'quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, itemId, quantity, note, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'consumption_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ConsumptionRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('item_id')) {
+      context.handle(
+        _itemIdMeta,
+        itemId.isAcceptableOrUnknown(data['item_id']!, _itemIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_itemIdMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_quantityMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ConsumptionRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ConsumptionRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      itemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_id'],
+      )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}quantity'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ConsumptionRecordsTable createAlias(String alias) {
+    return $ConsumptionRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ConsumptionRecord extends DataClass
+    implements Insertable<ConsumptionRecord> {
+  final String id;
+  final String itemId;
+  final int quantity;
+  final String note;
+  final DateTime createdAt;
+  const ConsumptionRecord({
+    required this.id,
+    required this.itemId,
+    required this.quantity,
+    required this.note,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['item_id'] = Variable<String>(itemId);
+    map['quantity'] = Variable<int>(quantity);
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ConsumptionRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ConsumptionRecordsCompanion(
+      id: Value(id),
+      itemId: Value(itemId),
+      quantity: Value(quantity),
+      note: Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ConsumptionRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ConsumptionRecord(
+      id: serializer.fromJson<String>(json['id']),
+      itemId: serializer.fromJson<String>(json['itemId']),
+      quantity: serializer.fromJson<int>(json['quantity']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'itemId': serializer.toJson<String>(itemId),
+      'quantity': serializer.toJson<int>(quantity),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ConsumptionRecord copyWith({
+    String? id,
+    String? itemId,
+    int? quantity,
+    String? note,
+    DateTime? createdAt,
+  }) => ConsumptionRecord(
+    id: id ?? this.id,
+    itemId: itemId ?? this.itemId,
+    quantity: quantity ?? this.quantity,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ConsumptionRecord copyWithCompanion(ConsumptionRecordsCompanion data) {
+    return ConsumptionRecord(
+      id: data.id.present ? data.id.value : this.id,
+      itemId: data.itemId.present ? data.itemId.value : this.itemId,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConsumptionRecord(')
+          ..write('id: $id, ')
+          ..write('itemId: $itemId, ')
+          ..write('quantity: $quantity, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, itemId, quantity, note, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ConsumptionRecord &&
+          other.id == this.id &&
+          other.itemId == this.itemId &&
+          other.quantity == this.quantity &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class ConsumptionRecordsCompanion extends UpdateCompanion<ConsumptionRecord> {
+  final Value<String> id;
+  final Value<String> itemId;
+  final Value<int> quantity;
+  final Value<String> note;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ConsumptionRecordsCompanion({
+    this.id = const Value.absent(),
+    this.itemId = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ConsumptionRecordsCompanion.insert({
+    required String id,
+    required String itemId,
+    required int quantity,
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       itemId = Value(itemId),
+       quantity = Value(quantity),
+       createdAt = Value(createdAt);
+  static Insertable<ConsumptionRecord> custom({
+    Expression<String>? id,
+    Expression<String>? itemId,
+    Expression<int>? quantity,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (itemId != null) 'item_id': itemId,
+      if (quantity != null) 'quantity': quantity,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ConsumptionRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? itemId,
+    Value<int>? quantity,
+    Value<String>? note,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ConsumptionRecordsCompanion(
+      id: id ?? this.id,
+      itemId: itemId ?? this.itemId,
+      quantity: quantity ?? this.quantity,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (itemId.present) {
+      map['item_id'] = Variable<String>(itemId.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<int>(quantity.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConsumptionRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('itemId: $itemId, ')
+          ..write('quantity: $quantity, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3872,6 +4364,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ImportHistoryTable importHistory = $ImportHistoryTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $ConsumptionRecordsTable consumptionRecords =
+      $ConsumptionRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3885,6 +4379,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     importHistory,
     categories,
     settings,
+    consumptionRecords,
   ];
 }
 
@@ -3914,6 +4409,9 @@ typedef $$ItemsTableCreateCompanionBuilder =
       Value<bool> maintenanceReminderOn,
       Value<String> maintenanceCycle,
       Value<bool> isBorrowed,
+      Value<int> quantity,
+      Value<String> unit,
+      Value<int> lowStockThreshold,
       Value<int> rowid,
     });
 typedef $$ItemsTableUpdateCompanionBuilder =
@@ -3942,6 +4440,9 @@ typedef $$ItemsTableUpdateCompanionBuilder =
       Value<bool> maintenanceReminderOn,
       Value<String> maintenanceCycle,
       Value<bool> isBorrowed,
+      Value<int> quantity,
+      Value<String> unit,
+      Value<int> lowStockThreshold,
       Value<int> rowid,
     });
 
@@ -4070,6 +4571,21 @@ class $$ItemsTableFilterComposer extends Composer<_$AppDatabase, $ItemsTable> {
 
   ColumnFilters<bool> get isBorrowed => $composableBuilder(
     column: $table.isBorrowed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unit => $composableBuilder(
+    column: $table.unit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lowStockThreshold => $composableBuilder(
+    column: $table.lowStockThreshold,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4202,6 +4718,21 @@ class $$ItemsTableOrderingComposer
     column: $table.isBorrowed,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unit => $composableBuilder(
+    column: $table.unit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lowStockThreshold => $composableBuilder(
+    column: $table.lowStockThreshold,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ItemsTableAnnotationComposer
@@ -4306,6 +4837,17 @@ class $$ItemsTableAnnotationComposer
     column: $table.isBorrowed,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<String> get unit =>
+      $composableBuilder(column: $table.unit, builder: (column) => column);
+
+  GeneratedColumn<int> get lowStockThreshold => $composableBuilder(
+    column: $table.lowStockThreshold,
+    builder: (column) => column,
+  );
 }
 
 class $$ItemsTableTableManager
@@ -4360,6 +4902,9 @@ class $$ItemsTableTableManager
                 Value<bool> maintenanceReminderOn = const Value.absent(),
                 Value<String> maintenanceCycle = const Value.absent(),
                 Value<bool> isBorrowed = const Value.absent(),
+                Value<int> quantity = const Value.absent(),
+                Value<String> unit = const Value.absent(),
+                Value<int> lowStockThreshold = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ItemsCompanion(
                 id: id,
@@ -4386,6 +4931,9 @@ class $$ItemsTableTableManager
                 maintenanceReminderOn: maintenanceReminderOn,
                 maintenanceCycle: maintenanceCycle,
                 isBorrowed: isBorrowed,
+                quantity: quantity,
+                unit: unit,
+                lowStockThreshold: lowStockThreshold,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4414,6 +4962,9 @@ class $$ItemsTableTableManager
                 Value<bool> maintenanceReminderOn = const Value.absent(),
                 Value<String> maintenanceCycle = const Value.absent(),
                 Value<bool> isBorrowed = const Value.absent(),
+                Value<int> quantity = const Value.absent(),
+                Value<String> unit = const Value.absent(),
+                Value<int> lowStockThreshold = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ItemsCompanion.insert(
                 id: id,
@@ -4440,6 +4991,9 @@ class $$ItemsTableTableManager
                 maintenanceReminderOn: maintenanceReminderOn,
                 maintenanceCycle: maintenanceCycle,
                 isBorrowed: isBorrowed,
+                quantity: quantity,
+                unit: unit,
+                lowStockThreshold: lowStockThreshold,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -6484,6 +7038,219 @@ typedef $$SettingsTableProcessedTableManager =
       Setting,
       PrefetchHooks Function()
     >;
+typedef $$ConsumptionRecordsTableCreateCompanionBuilder =
+    ConsumptionRecordsCompanion Function({
+      required String id,
+      required String itemId,
+      required int quantity,
+      Value<String> note,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$ConsumptionRecordsTableUpdateCompanionBuilder =
+    ConsumptionRecordsCompanion Function({
+      Value<String> id,
+      Value<String> itemId,
+      Value<int> quantity,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$ConsumptionRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ConsumptionRecordsTable> {
+  $$ConsumptionRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ConsumptionRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ConsumptionRecordsTable> {
+  $$ConsumptionRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ConsumptionRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ConsumptionRecordsTable> {
+  $$ConsumptionRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get itemId =>
+      $composableBuilder(column: $table.itemId, builder: (column) => column);
+
+  GeneratedColumn<int> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ConsumptionRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ConsumptionRecordsTable,
+          ConsumptionRecord,
+          $$ConsumptionRecordsTableFilterComposer,
+          $$ConsumptionRecordsTableOrderingComposer,
+          $$ConsumptionRecordsTableAnnotationComposer,
+          $$ConsumptionRecordsTableCreateCompanionBuilder,
+          $$ConsumptionRecordsTableUpdateCompanionBuilder,
+          (
+            ConsumptionRecord,
+            BaseReferences<
+              _$AppDatabase,
+              $ConsumptionRecordsTable,
+              ConsumptionRecord
+            >,
+          ),
+          ConsumptionRecord,
+          PrefetchHooks Function()
+        > {
+  $$ConsumptionRecordsTableTableManager(
+    _$AppDatabase db,
+    $ConsumptionRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ConsumptionRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ConsumptionRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ConsumptionRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> itemId = const Value.absent(),
+                Value<int> quantity = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ConsumptionRecordsCompanion(
+                id: id,
+                itemId: itemId,
+                quantity: quantity,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String itemId,
+                required int quantity,
+                Value<String> note = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ConsumptionRecordsCompanion.insert(
+                id: id,
+                itemId: itemId,
+                quantity: quantity,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ConsumptionRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ConsumptionRecordsTable,
+      ConsumptionRecord,
+      $$ConsumptionRecordsTableFilterComposer,
+      $$ConsumptionRecordsTableOrderingComposer,
+      $$ConsumptionRecordsTableAnnotationComposer,
+      $$ConsumptionRecordsTableCreateCompanionBuilder,
+      $$ConsumptionRecordsTableUpdateCompanionBuilder,
+      (
+        ConsumptionRecord,
+        BaseReferences<
+          _$AppDatabase,
+          $ConsumptionRecordsTable,
+          ConsumptionRecord
+        >,
+      ),
+      ConsumptionRecord,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6504,4 +7271,6 @@ class $AppDatabaseManager {
       $$CategoriesTableTableManager(_db, _db.categories);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$ConsumptionRecordsTableTableManager get consumptionRecords =>
+      $$ConsumptionRecordsTableTableManager(_db, _db.consumptionRecords);
 }

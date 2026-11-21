@@ -62,6 +62,8 @@ class Items extends _$Items {
 
   Future<void> removeItem(String id) async {
     await _dao.deleteItem(id);
+    // 同步清理该物品的消耗流水（弱引用，无外键级联）
+    ref.read(consumptionDaoProvider).deleteByItem(id);
     ref.invalidateSelf();
   }
 
@@ -143,6 +145,9 @@ class Items extends _$Items {
     maintenanceReminderOn: row.maintenanceReminderOn,
     maintenanceCycle: row.maintenanceCycle,
     isBorrowed: row.isBorrowed,
+    quantity: row.quantity,
+    unit: row.unit,
+    lowStockThreshold: row.lowStockThreshold,
   );
 
   /// Item → drift Companion（insert/update 复用）
@@ -172,6 +177,9 @@ class Items extends _$Items {
       maintenanceReminderOn: Value(item.maintenanceReminderOn),
       maintenanceCycle: Value(item.maintenanceCycle),
       isBorrowed: Value(item.isBorrowed),
+      quantity: Value(item.quantity),
+      unit: Value(item.unit),
+      lowStockThreshold: Value(item.lowStockThreshold),
     );
   }
 

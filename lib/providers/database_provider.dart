@@ -8,6 +8,7 @@ import '../daos/space_item_dao.dart';
 import '../daos/import_history_dao.dart';
 import '../daos/category_dao.dart';
 import '../daos/settings_dao.dart';
+import '../daos/consumption_dao.dart';
 
 part 'generated/database_provider.g.dart';
 
@@ -45,3 +46,7 @@ CategoryDao categoryDao(Ref ref) => CategoryDao(ref.watch(databaseProvider));
 
 @riverpod
 SettingsDao settingsDao(Ref ref) => SettingsDao(ref.watch(databaseProvider));
+
+@riverpod
+ConsumptionDao consumptionDao(Ref ref) =>
+    ConsumptionDao(ref.watch(databaseProvider));

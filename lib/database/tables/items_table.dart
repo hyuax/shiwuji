@@ -37,6 +37,13 @@ class Items extends Table {
   TextColumn get maintenanceCycle => text().withDefault(const Constant(''))();
   // 是否已借出（false = 在家可借出，true = 已借出）
   BoolColumn get isBorrowed => boolean().withDefault(const Constant(false))();
+  // 数量（智能录入"40包纸巾"类场景，默认 1）
+  IntColumn get quantity => integer().withDefault(const Constant(1))();
+  // 数量单位（包/盒/箱等，空字符串表示未设置）
+  TextColumn get unit => text().withDefault(const Constant(''))();
+  // 低库存提醒阈值（数量 ≤ 阈值时提醒补货；0 = 未启用）
+  IntColumn get lowStockThreshold =>
+      integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};

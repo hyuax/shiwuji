@@ -34,6 +34,9 @@ abstract class Item with _$Item {
     @Default(false) bool maintenanceReminderOn,
     @Default('') String maintenanceCycle,
     @Default(false) bool isBorrowed,
+    @Default(1) int quantity,
+    @Default('') String unit,
+    @Default(0) int lowStockThreshold,
   }) = _Item;
 
   factory Item.fromJson(Map<String, dynamic> json) => _$ItemFromJson(json);
@@ -62,6 +65,9 @@ abstract class Item with _$Item {
     bool maintenanceReminderOn = false,
     String maintenanceCycle = '',
     bool isBorrowed = false,
+    int quantity = 1,
+    String unit = '',
+    int lowStockThreshold = 0,
   }) {
     return Item(
       id: const Uuid().v4(),
@@ -88,8 +94,14 @@ abstract class Item with _$Item {
       maintenanceReminderOn: maintenanceReminderOn,
       maintenanceCycle: maintenanceCycle,
       isBorrowed: isBorrowed,
+      quantity: quantity,
+      unit: unit,
+      lowStockThreshold: lowStockThreshold,
     );
   }
+
+  /// 是否处于低库存状态（阈值 > 0 且数量 ≤ 阈值）
+  bool get isLowStock => lowStockThreshold > 0 && quantity <= lowStockThreshold;
 
   DateTime get warrantyEndDate =>
       purchaseDate.add(Duration(days: warrantyDays));
