@@ -48,6 +48,10 @@ class _SmartAddPageState extends ConsumerState<SmartAddPage> {
   static const String _prefLastLocationKey = 'smart_add_last_location';
   Map<String, String?>? _lastLocationCache;
 
+  // ── 最近描述（一键重填上次输入的句子） ──
+  static const String _prefRecentDescKey = 'smart_add_recent_descriptions';
+  List<String> _recentDescriptions = [];
+
   // ── 描述输入与解析 ──
   final _descController = TextEditingController();
   final _scrollController = ScrollController();
@@ -80,6 +84,7 @@ class _SmartAddPageState extends ConsumerState<SmartAddPage> {
     _initSpeech();
     _loadPhotoSourcePref();
     _loadLastLocation();
+    _loadRecentDescriptions();
   }
 
   @override
@@ -466,6 +471,12 @@ class _SmartAddPageState extends ConsumerState<SmartAddPage> {
         await _saveLastLocationLabel(slotId, locationLabel);
       }
 
+      // 记录最近描述（下次一键重填）
+      final descText = _descController.text.trim();
+      if (descText.isNotEmpty) {
+        await _saveRecentDescription(descText);
+      }
+
       if (!mounted) return;
       final summary = drafts.length == 1
           ? '已添加「${drafts.first.name.text.trim()}」'
@@ -607,6 +618,42 @@ class _SmartAddPageState extends ConsumerState<SmartAddPage> {
         jsonEncode({'slotId': slotId, 'pathLabel': pathLabel}),
       );
     } catch (_) {}
+  }
+
+  // ==================== 最近描述 ====================
+  Future<void> _loadRecentDescriptions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_prefRecentDescKey);
+      if (raw == null || !mounted) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        setState(() {
+          _recentDescriptions = decoded.cast<String>().toList();
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveRecentDescription(String text) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = [..._recentDescriptions];
+      list.remove(text);
+      list.insert(0, text);
+      if (list.length > 5) list.removeRange(5, list.length);
+      _recentDescriptions = list;
+      await prefs.setString(_prefRecentDescKey, jsonEncode(list));
+      if (mounted) setState(() {});
+    } catch (_) {}
+  }
+
+  void _applyRecentDescription(String text) {
+    _descController
+      ..text = text
+      ..selection = TextSelection.collapsed(offset: text.length);
+    // 触发解析（listener 已监听文本变化）
+    _reparse();
   }
 
   // ==================== 重复合并提示 ====================
@@ -1193,6 +1240,46 @@ class _SmartAddPageState extends ConsumerState<SmartAddPage> {
             '支持多件物品："客厅有纸巾和电池" / "纸巾40包和牙膏2盒"（用"和"、顿号分隔）',
             style: TextStyle(fontSize: 11, color: AppColors.textHint),
           ),
+          // 最近描述：输入框为空时显示，一键重填后改改数量即可
+          if (_drafts.isEmpty && _recentDescriptions.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Text(
+              '最近描述（点击重填）：',
+              style: TextStyle(fontSize: 11, color: AppColors.textHint),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _recentDescriptions
+                  .map(
+                    (text) => GestureDetector(
+                      onTap: () => _applyRecentDescription(text),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Text(
+                          text.length > 18
+                              ? '${text.substring(0, 18)}…'
+                              : text,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
       ),
     );

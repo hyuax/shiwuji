@@ -195,7 +195,9 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
                 (i) =>
                     i.name.contains(_searchQuery) ||
                     i.category.contains(_searchQuery) ||
-                    i.location.contains(_searchQuery),
+                    i.location.contains(_searchQuery) ||
+                    i.brand.contains(_searchQuery) ||
+                    i.note.contains(_searchQuery),
               )
               .toList();
         }

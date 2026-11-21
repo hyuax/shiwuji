@@ -86,38 +86,8 @@ class WebDavService {
     final now = DateTime.now();
     debugPrint('[WebDavService] 开始备份，时间: ${now.toIso8601String()}');
 
-    // ─── 收集所有数据 ───────────────────────────
-    final items = await db.select(db.items).get();
-    final rooms = await db.select(db.rooms).get();
-    final cabinets = await db.select(db.cabinets).get();
-    final slots = await db.select(db.slots).get();
-    final spaceItems = await db.select(db.spaceItems).get();
-    final categories = await db.select(db.categories).get();
-    final importHistory = await db.select(db.importHistory).get();
-    final settings = await db.select(db.settings).get();
-
-    final itemCount = items.length;
-    debugPrint(
-      '[WebDavService] 数据统计: 物品 $itemCount, 分类 ${categories.length}, '
-      '房间 ${rooms.length}, 柜体 ${cabinets.length}, 格位 ${slots.length}, '
-      '收纳物品 ${spaceItems.length}, 导入记录 ${importHistory.length}',
-    );
-
-    final data = {
-      'version': db.schemaVersion,
-      'timestamp': now.toIso8601String(),
-      'itemCount': itemCount,
-      'items': items.map((e) => e.toJson()).toList(),
-      'rooms': rooms.map((e) => e.toJson()).toList(),
-      'cabinets': cabinets.map((e) => e.toJson()).toList(),
-      'slots': slots.map((e) => e.toJson()).toList(),
-      'spaceItems': spaceItems.map((e) => e.toJson()).toList(),
-      'categories': categories.map((e) => e.toJson()).toList(),
-      'importHistory': importHistory.map((e) => e.toJson()).toList(),
-      'settings': settings
-          .map((e) => {'key': e.key, 'value': e.value})
-          .toList(),
-    };
+    final data = await collectData(db);
+    final itemCount = (data['items'] as List?)?.length ?? 0;
 
     final jsonStr = jsonEncode(data);
     final filename =
@@ -146,6 +116,47 @@ class WebDavService {
     }
 
     return filename;
+  }
+
+  /// 收集全部数据为可 JSON 序列化的 Map（云端备份与本地自动备份共用）。
+  Future<Map<String, dynamic>> collectData(AppDatabase db) async {
+    final now = DateTime.now();
+    final items = await db.select(db.items).get();
+    final rooms = await db.select(db.rooms).get();
+    final cabinets = await db.select(db.cabinets).get();
+    final slots = await db.select(db.slots).get();
+    final spaceItems = await db.select(db.spaceItems).get();
+    final categories = await db.select(db.categories).get();
+    final importHistory = await db.select(db.importHistory).get();
+    final settings = await db.select(db.settings).get();
+    final consumptionRecords = await db.select(db.consumptionRecords).get();
+
+    final itemCount = items.length;
+    debugPrint(
+      '[WebDavService] 数据统计: 物品 $itemCount, 分类 ${categories.length}, '
+      '房间 ${rooms.length}, 柜体 ${cabinets.length}, 格位 ${slots.length}, '
+      '收纳物品 ${spaceItems.length}, 导入记录 ${importHistory.length}, '
+      '消耗记录 ${consumptionRecords.length}',
+    );
+
+    return {
+      'version': db.schemaVersion,
+      'timestamp': now.toIso8601String(),
+      'itemCount': itemCount,
+      'items': items.map((e) => e.toJson()).toList(),
+      'rooms': rooms.map((e) => e.toJson()).toList(),
+      'cabinets': cabinets.map((e) => e.toJson()).toList(),
+      'slots': slots.map((e) => e.toJson()).toList(),
+      'spaceItems': spaceItems.map((e) => e.toJson()).toList(),
+      'categories': categories.map((e) => e.toJson()).toList(),
+      'importHistory': importHistory.map((e) => e.toJson()).toList(),
+      'consumptionRecords': consumptionRecords
+          .map((e) => e.toJson())
+          .toList(),
+      'settings': settings
+          .map((e) => {'key': e.key, 'value': e.value})
+          .toList(),
+    };
   }
 
   /// 列出备份历史
@@ -288,6 +299,7 @@ class WebDavService {
       await db.delete(db.importHistory).go();
       await db.delete(db.items).go();
       await db.delete(db.categories).go();
+      await db.delete(db.consumptionRecords).go();
       // settings 使用 upsert，不清空（保留 webdav_ 配置等未备份项）
 
       // ─── 恢复 rooms ───────────────────────────
@@ -411,6 +423,12 @@ class WebDavService {
                     _optStr(j, 'maintenanceCycle', ''),
                   ),
                   isBorrowed: Value(_optBool(j, 'isBorrowed', false)),
+                  // v3+ 新增字段（旧备份缺省时回退默认值）
+                  quantity: Value(_optInt(j, 'quantity', 1)),
+                  unit: Value(_optStr(j, 'unit', '')),
+                  lowStockThreshold: Value(
+                    _optInt(j, 'lowStockThreshold', 0),
+                  ),
                 ),
               );
         }
@@ -475,6 +493,27 @@ class WebDavService {
                   ),
                 );
           }
+        }
+      }
+
+      // ─── 恢复 consumptionRecords（旧备份无此键则跳过）───
+      if (data['consumptionRecords'] != null) {
+        for (final j
+            in (data['consumptionRecords'] as List)
+                .cast<Map<String, dynamic>>()) {
+          final createdAtStr = _optStr(j, 'createdAt', '');
+          final createdAt = DateTime.tryParse(createdAtStr) ?? DateTime.now();
+          await db
+              .into(db.consumptionRecords)
+              .insert(
+                ConsumptionRecordsCompanion.insert(
+                  id: _reqStr(j, 'id', 'consumptionRecords'),
+                  itemId: _reqStr(j, 'itemId', 'consumptionRecords'),
+                  quantity: _reqInt(j, 'quantity', 'consumptionRecords'),
+                  note: Value(_optStr(j, 'note', '')),
+                  createdAt: createdAt,
+                ),
+              );
         }
       }
     });

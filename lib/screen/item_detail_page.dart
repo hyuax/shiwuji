@@ -739,34 +739,53 @@ class ItemDetailPage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: AppDimensions.spacingSmall),
-          Text.rich(
-            TextSpan(
-              children: [
+          Row(
+            children: [
+              // 快捷消耗（-1，写流水；数量为 0 时禁用）
+              _buildQuickAdjustButton(
+                icon: Icons.remove,
+                enabled: item.quantity > 0,
+                onTap: () => _quickAdjust(context, ref, item, -1),
+              ),
+              const SizedBox(width: 14),
+              Text.rich(
                 TextSpan(
-                  text: '${item.quantity}',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  children: [
+                    TextSpan(
+                      text: '${item.quantity}',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    TextSpan(
+                      text: item.unit.isEmpty ? '' : ' ${item.unit}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    TextSpan(
+                      text: item.quantity <= 0 ? '（已用完）' : '',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.warning,
+                      ),
+                    ),
+                  ],
                 ),
-                TextSpan(
-                  text: item.unit.isEmpty ? '' : ' ${item.unit}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                TextSpan(
-                  text: item.quantity <= 0 ? '（已用完）' : '',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.warning,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 14),
+              // 快捷补货（+1，只加数量不写消耗流水）
+              _buildQuickAdjustButton(
+                icon: Icons.add,
+                enabled: true,
+                onTap: () => _quickAdjust(context, ref, item, 1),
+              ),
+              const Spacer(),
+            ],
           ),
           if (item.lowStockThreshold > 0)
             Padding(
@@ -781,6 +800,8 @@ class ItemDetailPage extends ConsumerWidget {
                 ),
               ),
             ),
+          // 本月消耗统计（按当前月份的消耗流水求和）
+          ..._buildMonthlyConsumption(item, records),
           // 消耗记录（最近 5 条）
           if (records.isNotEmpty) ...[
             const SizedBox(height: AppDimensions.spacingMedium),
@@ -829,6 +850,70 @@ class ItemDetailPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// 快捷加减按钮（数量行两侧的 − / +）
+  Widget _buildQuickAdjustButton({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: enabled ? AppColors.background : AppColors.border,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled ? AppColors.primaryDark : AppColors.textHint,
+        ),
+      ),
+    );
+  }
+
+  /// 快捷加减：负数走消耗流水（消耗 1 件），正数直接补货加数量。
+  Future<void> _quickAdjust(
+    BuildContext context,
+    WidgetRef ref,
+    Item item,
+    int delta,
+  ) async {
+    if (delta < 0) {
+      await ref
+          .read(consumptionActionsProvider.notifier)
+          .consumeItem(item: item, amount: 1);
+    } else {
+      await ref
+          .read(itemsProvider.notifier)
+          .updateItem(item.copyWith(quantity: item.quantity + 1));
+    }
+  }
+
+  /// 本月消耗统计：按当前月份的消耗流水求和。
+  List<Widget> _buildMonthlyConsumption(Item item, List<ConsumptionEntry> records) {
+    final now = DateTime.now();
+    final monthSum = records
+        .where(
+          (r) => r.createdAt.year == now.year && r.createdAt.month == now.month,
+        )
+        .fold<int>(0, (sum, r) => sum + r.quantity);
+    if (monthSum <= 0) return const [];
+    return [
+      Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Text(
+          '本月已消耗 $monthSum${item.unit.isEmpty ? '件' : item.unit}',
+          style: const TextStyle(fontSize: 11, color: AppColors.textHint),
+        ),
+      ),
+    ];
   }
 
   /// 消耗弹层：输入本次消耗数量与备注，确认后扣减数量并写流水。

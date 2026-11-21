@@ -10,6 +10,7 @@ import 'package:shi_wu_ji/providers/storage_providers.dart';
 import 'package:shi_wu_ji/providers/category_provider.dart';
 import 'package:shi_wu_ji/services/notification_service.dart';
 import 'package:shi_wu_ji/services/webdav_service.dart';
+import 'package:shi_wu_ji/screen/me/auto_backup_settings_card.dart';
 import 'package:go_router/go_router.dart';
 
 class DataBackupPage extends ConsumerStatefulWidget {
@@ -301,6 +302,8 @@ class _DataBackupPageState extends ConsumerState<DataBackupPage> {
                               _buildConfigCard(),
                               const SizedBox(height: 16),
                               _buildActionCard(),
+                              const SizedBox(height: 24),
+                              const AutoBackupSettingsCard(),
                               if (_isConnected) ...[
                                 const SizedBox(height: 24),
                                 _buildHistorySection(),
