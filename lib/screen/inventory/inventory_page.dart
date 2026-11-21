@@ -603,8 +603,23 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
     // 从 provider 动态读取分类列表：数据库分类 + 虚拟物品分类
     // 用户在分类管理页的新增/编辑/删除会实时反映到此处
     final dynamicCats = ref.watch(availableCategoriesProvider);
-    // 「全部」固定在最前；其后跟随动态分类
-    final tabs = <Category>[const Category('all', '全部'), ...dynamicCats];
+    // 常用前置：按该分类下的物品计数降序排列（计数并列时保持原有顺序）
+    final items = ref.watch(itemsProvider).value ?? const <Item>[];
+    final countByLabel = <String, int>{};
+    for (final it in items) {
+      countByLabel[it.category] = (countByLabel[it.category] ?? 0) + 1;
+    }
+    final originalIndex = <String, int>{
+      for (var i = 0; i < dynamicCats.length; i++) dynamicCats[i].label: i,
+    };
+    final sortedCats = [...dynamicCats]..sort((a, b) {
+      final countDiff =
+          (countByLabel[b.label] ?? 0) - (countByLabel[a.label] ?? 0);
+      if (countDiff != 0) return countDiff;
+      return (originalIndex[a.label] ?? 0) - (originalIndex[b.label] ?? 0);
+    });
+    // 「全部」固定在最前；其后跟随按计数排序的动态分类
+    final tabs = <Category>[const Category('all', '全部'), ...sortedCats];
     // 防御：若当前选中的分类已不存在（被用户删除），回退到「全部」
     if (_activeCategory != 'all' &&
         !tabs.any((c) => c.key == _activeCategory)) {
@@ -959,15 +974,23 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          _buildQuantityBadge(item),
+                          _buildLowStockBadge(item),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -1114,15 +1137,23 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        _buildQuantityBadge(item),
+                        _buildLowStockBadge(item),
+                      ],
                     ),
                     const SizedBox(height: 3),
                     Row(
@@ -1175,6 +1206,9 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
   // ─── 通用组件 ──────────────────────────────
 
   Widget _buildStatusBadge(Item item, {bool isSmall = false}) {
+    // 未设置保修期限的物品不显示任何状态徽章
+    // （此前 idle（未设置保修）与"已过保"共用样式，导致无保修物品误显示"过保"）
+    if (!item.hasWarranty) return const SizedBox.shrink();
     final itemStatus = item.warrantyStatus;
     Color bgColor;
     Color textColor;
@@ -1225,6 +1259,40 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
       ),
       child: const Text(
         '已借出',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: AppColors.danger,
+        ),
+      ),
+    );
+  }
+
+  /// 数量角标：quantity > 1 时在名称旁显示"×N单位"（智能录入的数量记录）。
+  Widget _buildQuantityBadge(Item item) {
+    if (item.quantity <= 1) return const SizedBox.shrink();
+    return Text(
+      ' ×${item.quantity}${item.unit}',
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: AppColors.primaryDark,
+      ),
+    );
+  }
+
+  /// 低库存徽章：设置了阈值且数量 ≤ 阈值时显示。
+  Widget _buildLowStockBadge(Item item) {
+    if (!item.isLowStock) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.danger.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Text(
+        '库存不足',
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,
