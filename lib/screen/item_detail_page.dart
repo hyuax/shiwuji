@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shi_wu_ji/constants/app_colors.dart';
@@ -12,10 +13,12 @@ import 'package:shi_wu_ji/widgets/info_cell.dart';
 import 'package:shi_wu_ji/widgets/photo_carousel.dart';
 import 'package:shi_wu_ji/models/item.dart';
 import 'package:shi_wu_ji/models/template.dart';
+import 'package:shi_wu_ji/providers/consumption_providers.dart';
 import 'package:shi_wu_ji/providers/item_providers.dart';
 import 'package:shi_wu_ji/providers/storage_providers.dart';
 import 'package:shi_wu_ji/services/notification_service.dart';
 import 'package:shi_wu_ji/services/photo_service.dart';
+import 'package:shi_wu_ji/widgets/toast_utils.dart';
 
 class ItemDetailPage extends ConsumerWidget {
   final String itemId;
@@ -49,6 +52,8 @@ class ItemDetailPage extends ConsumerWidget {
           _buildCountdownSection(context, item),
           const SizedBox(height: AppDimensions.spacingExtraLarge),
           _buildInfoSection(context, ref, item),
+          const SizedBox(height: AppDimensions.spacingExtraLarge),
+          _buildConsumptionSection(context, ref, item),
           const SizedBox(height: AppDimensions.spacingExtraLarge),
           _buildTemplateSection(item),
           const SizedBox(height: AppDimensions.spacingExtraLarge),
@@ -663,6 +668,12 @@ class ItemDetailPage extends ConsumerWidget {
                 value: '¥${item.price.toStringAsFixed(0)}',
                 isAccent: true,
               ),
+              // 数量（quantity > 1 时展示，智能录入的数量记录）
+              if (item.quantity > 1)
+                InfoCell(
+                  label: '数量',
+                  value: '${item.quantity}${item.unit}',
+                ),
               InfoCell(label: '来源', value: item.source),
               _BorrowStatusCell(isBorrowed: item.isBorrowed),
             ],
@@ -684,6 +695,293 @@ class ItemDetailPage extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+
+  // ─── 数量与消耗 ─────────────────────────────
+
+  /// 数量与消耗区块：当前数量、消耗入口、最近消耗记录。
+  Widget _buildConsumptionSection(BuildContext context, WidgetRef ref, Item item) {
+    final recordsAsync = ref.watch(consumptionRecordsByItemProvider(item.id));
+    final records = recordsAsync.value ?? const <ConsumptionEntry>[];
+
+    return CardContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('数量与消耗', style: AppTextStyles.titleSmall),
+              GestureDetector(
+                onTap: () => _openConsumeSheet(context, ref, item),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, AppColors.warning],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '消耗',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.spacingSmall),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '${item.quantity}',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                TextSpan(
+                  text: item.unit.isEmpty ? '' : ' ${item.unit}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                TextSpan(
+                  text: item.quantity <= 0 ? '（已用完）' : '',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.warning,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (item.lowStockThreshold > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                item.isLowStock
+                    ? '已低于提醒阈值 ${item.lowStockThreshold}${item.unit}，建议补货'
+                    : '低于 ${item.lowStockThreshold}${item.unit} 时提醒补货',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: item.isLowStock ? AppColors.danger : AppColors.textHint,
+                ),
+              ),
+            ),
+          // 消耗记录（最近 5 条）
+          if (records.isNotEmpty) ...[
+            const SizedBox(height: AppDimensions.spacingMedium),
+            const Divider(height: 1, color: AppColors.border),
+            const SizedBox(height: AppDimensions.spacingSmall),
+            ...records.take(5).map((r) {
+              final created = r.createdAt;
+              final dateText =
+                  '${created.year}-${created.month.toString().padLeft(2, '0')}-${created.day.toString().padLeft(2, '0')}';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.outbound_outlined,
+                      size: 14,
+                      color: AppColors.textHint,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        r.note.isEmpty
+                            ? '$dateText 消耗 ${r.quantity}${item.unit}'
+                            : '$dateText 消耗 ${r.quantity}${item.unit} · ${r.note}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            if (records.length > 5)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  '… 共 ${records.length} 条记录',
+                  style: TextStyle(fontSize: 11, color: AppColors.textHint),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 消耗弹层：输入本次消耗数量与备注，确认后扣减数量并写流水。
+  void _openConsumeSheet(BuildContext context, WidgetRef ref, Item item) {
+    final amountController = TextEditingController(text: '1');
+    final noteController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            16,
+            20,
+            16 + MediaQuery.of(sheetCtx).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '消耗「${item.name}」',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '现有 ${item.quantity}${item.unit}',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '消耗数量',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: amountController,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: item.unit.isEmpty ? '1' : '1（${item.unit}）',
+                  hintStyle: TextStyle(
+                    color: AppColors.textHint,
+                    fontSize: 14,
+                  ),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '备注（可选，如"用完了""送人"）',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: noteController,
+                style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: '选填',
+                  hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () async {
+                  final amount =
+                      int.tryParse(amountController.text.trim()) ?? 0;
+                  if (amount < 1) {
+                    ToastUtils.show(sheetCtx, '请输入有效的消耗数量');
+                    return;
+                  }
+                  if (amount > item.quantity) {
+                    ToastUtils.show(sheetCtx, '数量不足，当前仅剩 ${item.quantity}${item.unit}');
+                    return;
+                  }
+                  final ok = await ref
+                      .read(consumptionActionsProvider.notifier)
+                      .consumeItem(
+                        item: item,
+                        amount: amount,
+                        note: noteController.text.trim(),
+                      );
+                  if (!sheetCtx.mounted) return;
+                  if (ok) {
+                    Navigator.pop(sheetCtx);
+                    if (!context.mounted) return;
+                    ToastUtils.show(
+                      context,
+                      '已消耗 $amount${item.unit}，剩余 ${item.quantity - amount}${item.unit}',
+                    );
+                  } else {
+                    ToastUtils.show(sheetCtx, '消耗失败，请重试');
+                  }
+                },
+                child: Container(
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, AppColors.primaryDeep],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    '确认消耗',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
